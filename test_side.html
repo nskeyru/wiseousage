@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Переводчик на Люминарийский язык</title>
+    <style>
+        /* Основные стили */
+        :root {
+            --background-color: #f4f4f9;
+            --text-color: #333;
+            --primary-color: #4CAF50;
+            --secondary-color: #45a049;
+            --border-color: #ccc;
+            --input-background: #fff;
+        }
+
+        [data-theme="dark"] {
+            --background-color: #1e1e1e;
+            --text-color: #f4f4f9;
+            --primary-color: #2ecc71;
+            --secondary-color: #27ae60;
+            --border-color: #444;
+            --input-background: #333;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            margin-bottom: 20px;
+            background-color: var(--input-background);
+            color: var(--text-color);
+            resize: vertical;
+            transition: border-color 0.3s, background-color 0.3s, color 0.3s;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .output {
+            padding: 20px;
+            background-color: var(--input-background);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            position: relative;
+        }
+
+        .output button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: var(--primary-color);
+        }
+
+        .output button:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .theme-switcher {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s;
+        }
+
+        .theme-switcher:hover {
+            background-color: var(--secondary-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Переводчик на Люминарийский язык</h1>
+        <textarea id="inputText" placeholder="Введите текст на русском языке..."></textarea>
+        <div class="buttons">
+            <button onclick="translateText()">Перевести</button>
+            <button onclick="clearText()">Очистить</button>
+        </div>
+        <div class="output">
+            <strong>Перевод:</strong>
+            <p id="outputText"></p>
+            <button onclick="copyToClipboard()">📋</button>
+        </div>
+    </div>
+    <button class="theme-switcher" onclick="toggleTheme()">🌓</button>
+    <script>
+        // Расширенный список английских слогов для создания "люминарийских" слов
+        const englishSyllables = [
+            "ing", "tion", "ment", "ness", "er", "al", "ly", "en", "es", "ed", 
+            "un", "re", "in", "dis", "pre", "pro", "con", "com", "per", "sub", 
+            "ter", "est", "ant", "ent", "ous", "ive", "ate", "ify", "ize", "ble", 
+            "age", "ance", "ence", "dom", "hood", "ship", "ist", "ism", "ful", "less", 
+            "ward", "wise", "able", "ible", "ary", "ory", "ify", "logy", "graph", "scope",
+            "light", "lumi", "nari", "aria", "nova", "solar", "stellar", "cosmo", "galaxy", "orbit",
+            "flare", "beam", "glow", "shine", "radiant", "bright", "spark", "twinkle", "glitter"
+        ];
+
+        // Словарь для хранения переведенных слов
+        const translationCache = {};
+
+        // Простая функция хеширования
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = (hash << 5) - hash + char;
+                hash |= 0; // Преобразуем в 32-битное целое число
+            }
+            return Math.abs(hash);
+        }
+
+        // Функция для преобразования слова в "люминарийское" слово
+        function hashToWord(word) {
+            let hash = simpleHash(word);
+            let luminarianWord = [];
+            for (let i = 0; i < 3; i++) { // Количество слогов (можно изменить)
+                const index = hash % englishSyllables.length;
+                luminarianWord.push(englishSyllables[index]);
+                hash = Math.floor(hash / englishSyllables.length);
+            }
+            return luminarianWord.join("");
+        }
+
+        // Функция для перевода одного слова
+        function translateWord(word) {
+            const lowerWord = word.toLowerCase();
+            if (translationCache[lowerWord]) {
+                return translationCache[lowerWord];
+            }
+
+            const translatedWord = hashToWord(lowerWord);
+            translationCache[lowerWord] = translatedWord;
+
+            // Сохраняем регистр исходного слова
+            if (word[0] === word[0].toUpperCase()) {
+                return translatedWord[0].toUpperCase() + translatedWord.slice(1);
+            }
+            return translatedWord;
+        }
+
+        // Функция для перевода предложения
+        function translateSentence(sentence) {
+            const tokens = sentence.split(/(\s+|\p{P}+)/u);  
+            const translatedTokens = tokens.map(token => {
+                return token.trim() ? translateWord(token) : token;
+            });
+            return translatedTokens.join("");
+        }
+
+        // Функция для перевода текста
+        function translateText() {
+            const inputText = document.getElementById("inputText").value;
+            const sentences = inputText.split(/([.!?]+\s*)/);
+            const translatedSentences = sentences.map(sentence => translateSentence(sentence));
+            document.getElementById("outputText").textContent = translatedSentences.join(" ");
+        }
+
+        // Функция для очистки текста
+        function clearText() {
+            document.getElementById("inputText").value = "";
+            document.getElementById("outputText").textContent = "";
+        }
+
+        // Функция для копирования текста в буфер обмена
+        function copyToClipboard() {
+            const outputText = document.getElementById("outputText").textContent;
+            navigator.clipboard.writeText(outputText).then(() => {
+                alert("Текст скопирован в буфер обмена!");
+            });
+        }
+
+        // Функция для переключения темы
+        function toggleTheme() {
+            const body = document.body;
+            const currentTheme = body.getAttribute("data-theme");
+            if (currentTheme === "dark") {
+                body.removeAttribute("data-theme");
+            } else {
+                body.setAttribute("data-theme", "dark");
+            }
+        }
+    </script>
+
+
+</body>
+</html>
